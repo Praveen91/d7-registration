@@ -204,6 +204,9 @@ function registration_views_api() {
 /**
  * Implements hook_entity_info().
  */
+
+// As we know that view_bulk_opration working only for entity 
+// So we need to declare our custom table as entity.
 function registration_entity_info() {
   return array(
     'registration_data' => array(
@@ -218,6 +221,10 @@ function registration_entity_info() {
   );
 }
 
+/**
+ * Implements hook_action_info().
+ */
+// creating action for views_bulk_operation
 function registration_action_info() {
   return array(
     'registration_myaction' => array(
@@ -229,8 +236,12 @@ function registration_action_info() {
   );
 }
 
+/**
+ * Implements action callback().
+ */
 function registration_myaction($cmt, $context = array()) {
 //do you db action here. you can fetch the primary key using tablename_primarykey
-  $context->phone_number = 0099;
-    db_update('registration_data')->fields(array('organization' => 'TEST'))->condition('phone_number', $context->phone_number)->execute();
+ db_update('registration_data')
+      ->fields(array('organization' => 'TEST'))
+      ->execute();
 }
