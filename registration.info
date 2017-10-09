@@ -1,0 +1,5 @@
+name = Registration Form
+description = Allow user to register,validate and submit the data for future use.
+core = 7.x
+package = utility
+dependencies[]=ctools

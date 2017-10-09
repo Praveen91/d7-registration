@@ -1,0 +1,236 @@
+<?php
+  
+  /**
+   *  Implements hook_menu()
+   */
+   function registration_menu() {
+	   
+	$items['registration/page'] = array(
+	  'title' => 'User Registartaion Model box:',
+	  'page callback' => 'registration_page',
+      'access callback' => TRUE,
+      'type' => MENU_NORMAL_ITEM,
+    );	   
+	   
+    $items['registration/%ctools_js'] = array(
+      'title' => 'User Registartaion Form:',
+      'page arguments' => array(1),
+      'page callback' => 'registration_ajax_sample_pages',
+      'access callback' => TRUE,
+    );
+   
+    return $items;
+  }
+  
+  /**
+   * Page callback registration_page()
+   * @return helper function link.
+   */
+  function registration_page() {
+	// Load the modal library and add javascript.
+	ctools_include('modal');
+	ctools_modal_add_js();
+    return _registration_make_link();
+  }  
+  
+   
+  /**
+   * Helper function to create a link.
+   */
+  function _registration_make_link() {
+	$link_text = 'Click here to register!';
+    return '<div id="modal-link">' . l($link_text, 'registration/nojs', array('attributes' => array('class' => 'ctools-use-modal'))) . '</div>';
+  } 
+  
+ /**
+  * Ajax menu callback.
+  */
+  function registration_ajax_sample_pages($ajax) {
+    if ($ajax) {
+      ctools_include('ajax');
+      ctools_include('modal');
+
+      $form_state = array(
+        'ajax' => TRUE,
+        'title' => t('Registration Form'),
+      );
+
+    // Use ctools to generate ajax instructions for the browser to create a form in a modal popup.
+    $output = ctools_modal_form_wrapper('registration_form', $form_state);
+
+      // If the form has been submitted, there may be additional instructions
+      // such as dismissing the modal popup.
+      if (!empty($form_state['ajax_commands'])) {
+        $output = $form_state['ajax_commands'];
+      }
+      // Return the ajax instructions to the browser via ajax_render().
+      print ajax_render($output);
+      drupal_exit();
+    }  else {
+      return drupal_get_form('registration_form');
+    }
+  }  
+   
+  /**
+   * Drupal form to be put in a modal.
+   */
+	function registration_form($form, $form_state) {
+	  $form = array();
+
+	  $form['first_name'] = array(
+		'#type' => 'textfield',
+		'#title' => t('First Name'),
+		'#required' => TRUE,
+		'#size' => 50,
+		'#weight' => 1,
+	  );
+	  $form['last_name'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Last Name'),
+		'#required' => TRUE,
+		'#size' => 50,
+		'#weight' => 2,
+	  );
+	  $form['organization'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Organization'),
+		'#size' => 50,
+		'#weight' => 3,
+		'#element_validate' => array('_org_field_validate'),
+	  );
+	  $form['email_address'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Email Address'),
+		'#required' => TRUE,
+		'#maxlength' => 255,
+		'#weight' => 4,
+	  );
+	  $form['phone_number'] = array(
+		'#type' => 'textfield',
+		'#title' => t('Phone number'),
+		'#required' => TRUE,
+		'#maxlength' => 10,
+		'#attributes' => array(
+			' type' => 'number',
+		),
+		'#weight' => 5,
+	  ); 	  
+	  $form['gender'] = array(
+		'#type' => 'radios',
+		'#title' => t('Gender'),
+		'#required' => TRUE,
+		'#options' => array(
+		  0 => t('Female'), 
+		  1 => t('Male'),
+		),
+		'#weight' => 6,
+	  ); 
+	 
+	  $form['submit'] = array(
+		'#type' => 'submit',
+		'#value' => t('Submit'),
+		'#weight' => 7,
+	  );
+
+	  return $form;
+	} 
+
+ /**
+  * Implements hook_form_validate().
+  */
+  function registration_form_validate($form, $form_state) { 
+    if(!filter_var($form_state['values']['email_address'], FILTER_VALIDATE_EMAIL)) {
+       //Invalid email!
+	    form_set_error('email_address', t('Email addrerss  "!name" seems to be invalid address.', array('!name' => t($form_state['values']['email_address']))));
+	}
+	if (check_user_email($form_state['values']['email_address'])) {
+      form_set_error('email_address', t('The e-mail address  "!name" is already taken.', array('!name' => t($form_state['values']['email_address']))));
+    }
+  }
+
+  /*form element validation function*/
+  function _org_field_validate($element, &$form_state, $form) {
+    if (empty($element['#value'])) {
+      form_error($element, t('Organization name is required field.'));
+    }
+  }
+	
+  /**
+   * Drupal form submit handler.
+   */
+  function registration_form_submit(&$form, &$form_state) {
+
+    watchdog('$form_detail ', '$form_detail: <pre>@info</pre>', array('@info' => print_r($form_state , TRUE)), WATCHDOG_DEBUG);
+
+    $query = db_insert('registration_data')
+      ->fields(array(
+        'first_name' => $form_state['values']['first_name'],
+        'last_name' => $form_state['values']['last_name'],
+        'organization' => $form_state['values']['organization'],
+        'email_address' => $form_state['values']['email_address'],
+        'phone_number' => $form_state['values']['phone_number'],
+        'gender' => $form_state['values']['gender'] 
+       ))
+    ->execute();
+  
+	// Tell the browser to close the modal & redirect.
+	$form_state['ajax_commands'][] = ctools_modal_command_dismiss();
+	$form_state['ajax_commands'][]  = ctools_ajax_command_redirect('registration/page');
+
+	drupal_set_message('Registration completed successfully');
+  }
+  
+    /**
+   * Implements function for validate if email already exists.
+   */
+  function check_user_email($email) {
+   $query = db_select('registration_data')
+      ->fields('registration_data', array('email_address'))
+      ->condition('email_address', $email);
+     return $query->execute()->fetch();
+  }
+  
+ 
+/**
+ * Implementation of hook_views_api().
+ */
+function registration_views_api() {
+   return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'registration') . '/includes/views',
+  );
+}
+
+/**
+ * Implements hook_entity_info().
+ */
+function registration_entity_info() {
+  return array(
+    'registration_data' => array(
+      'label' => t('User registration of entity'),
+      'label callback' => 'registration_data_label_callback',
+      'entity class' => 'Registration',
+      'base table' => 'registration_data',
+      'entity keys' => array(
+        'id' => 'email_address',
+      ),
+    ),
+  );
+}
+
+function registration_action_info() {
+  return array(
+    'registration_myaction' => array(
+      'type' => 'entity',
+      'label' => t('Do my action'),
+      'configurable' => FALSE,
+      'pass rows' => TRUE, //this will ensure that the entire views row is passed as part of the context in your action callback.
+    ),
+  );
+}
+
+function registration_myaction($cmt, $context = array()) {
+//do you db action here. you can fetch the primary key using tablename_primarykey
+  $context->phone_number = 8181878044;
+    db_update('registration_data')->fields(array('organization' => 'UKUNI'))->condition('phone_number', $context->phone_number)->execute();
+}
