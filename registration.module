@@ -6,10 +6,10 @@
    function registration_menu() {
 	   
 	$items['registration/page'] = array(
-	  'title' => 'User Registartaion Model box:',
-	  'page callback' => 'registration_page',
-      'access callback' => TRUE,
-      'type' => MENU_NORMAL_ITEM,
+	   'title' => 'User Registartaion Model box:',
+	   'page callback' => 'registration_page',
+     'access callback' => TRUE,
+     'type' => MENU_NORMAL_ITEM,
     );	   
 	   
     $items['registration/%ctools_js'] = array(
@@ -231,6 +231,6 @@ function registration_action_info() {
 
 function registration_myaction($cmt, $context = array()) {
 //do you db action here. you can fetch the primary key using tablename_primarykey
-  $context->phone_number = 8181878044;
-    db_update('registration_data')->fields(array('organization' => 'UKUNI'))->condition('phone_number', $context->phone_number)->execute();
+  $context->phone_number = 0099;
+    db_update('registration_data')->fields(array('organization' => 'TEST'))->condition('phone_number', $context->phone_number)->execute();
 }
